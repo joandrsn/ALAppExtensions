@@ -89,10 +89,10 @@ codeunit 6103 "E-Document Subscription"
 
         if SalesInvHdrNo <> '' then begin
             if SalesInvHeader.Get(SalesInvHdrNo) then
-                CreateEDocumentFromPosedDocument(SalesInvHeader);
+                CreateEDocumentFromPostedDocument(SalesInvHeader);
         end else
             if SalesCrMemoHeader.Get(SalesCrMemoHdrNo) then
-                CreateEDocumentFromPosedDocument(SalesCrMemoHeader);
+                CreateEDocumentFromPostedDocument(SalesCrMemoHeader);
     end;
 
 
@@ -134,10 +134,10 @@ codeunit 6103 "E-Document Subscription"
 
         if ServInvoiceNo <> '' then begin
             if ServiceInvoiceHeader.Get(ServInvoiceNo) then
-                CreateEDocumentFromPosedDocument(ServiceInvoiceHeader);
+                CreateEDocumentFromPostedDocument(ServiceInvoiceHeader);
         end else
             if ServiceCrMemoHdr.Get(ServCrMemoNo) then
-                CreateEDocumentFromPosedDocument(ServiceCrMemoHdr);
+                CreateEDocumentFromPostedDocument(ServiceCrMemoHdr);
     end;
 
     [EventSubscriber(ObjectType::Codeunit, Codeunit::"FinChrgMemo-Issue", 'OnAfterIssueFinChargeMemo', '', false, false)]
@@ -148,7 +148,7 @@ codeunit 6103 "E-Document Subscription"
         if IssuedFinChargeMemoNo = '' then
             exit;
         if IssuedFinChrgMemoHeader.Get(IssuedFinChargeMemoNo) then
-            CreateEDocumentFromPosedDocument(IssuedFinChrgMemoHeader);
+            CreateEDocumentFromPostedDocument(IssuedFinChrgMemoHeader);
     end;
 
     [EventSubscriber(ObjectType::Codeunit, Codeunit::"Reminder-Issue", 'OnAfterIssueReminder', '', false, false)]
@@ -159,7 +159,7 @@ codeunit 6103 "E-Document Subscription"
         if IssuedReminderNo = '' then
             exit;
         if IssuedReminderHeader.Get(IssuedReminderNo) then
-            CreateEDocumentFromPosedDocument(IssuedReminderHeader);
+            CreateEDocumentFromPostedDocument(IssuedReminderHeader);
     end;
 
     [EventSubscriber(ObjectType::Table, Database::"Document Sending Profile", 'OnCheckElectronicSendingEnabled', '', false, false)]
@@ -283,10 +283,14 @@ codeunit 6103 "E-Document Subscription"
         EDocLogHelper.InsertLog(EDocument, EDocService, Enum::"E-Document Service Status"::"Imported Document Created");
     end;
 
-    local procedure CreateEDocumentFromPosedDocument(PostedRecord: Variant)
+    local procedure CreateEDocumentFromPostedDocument(PostedRecord: Variant)
     var
         PostedSourceDocumentHeader: RecordRef;
+        IsHandled: Boolean;
     begin
+        OnBeforeCreateEDocumentFromPostedDocument(PostedRecord, IsHandled);
+        if IsHandled then
+            exit;
         PostedSourceDocumentHeader.GetTable(PostedRecord);
         if EDocumentHelper.IsElectronicDocument(PostedSourceDocumentHeader) then
             EDocExport.CreateEDocument(PostedSourceDocumentHeader);
@@ -309,4 +313,9 @@ codeunit 6103 "E-Document Subscription"
         EDocumentProcessingPhase: Enum "E-Document Processing Phase";
         WrongAmountErr: Label 'Purchase Document cannot be released as Amount Incl. VAT: %1, is different from E-Document Amount Incl. VAT: %2', Comment = '%1 - Purchase document amount, %2 - E-document amount';
         DeleteNotAllowedErr: Label 'Deletion of Purchase Header linked to E-Document is not allowed.';
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeCreateEDocumentFromPostedDocument(PostedRecord: Variant; var IsHandled: Boolean)
+    begin
+    end;
 }
